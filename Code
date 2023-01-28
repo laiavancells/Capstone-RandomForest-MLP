@@ -1,0 +1,223 @@
+#import matlab data structure of interest
+!pip install mat4py
+import mat4py
+data_proc = mat4py.loadmat('data_for_Brigid_7_6_2022.mat')['data_proc']
+del data_proc['Sub001']
+for key in data_proc.keys():
+    exec(f'sub_{key} = data_proc["{key}"]')
+    print(f"Subject: {key}")
+    for sub_key, sub_value in eval(f'sub_{key}').items():
+        if sub_key == 'sorted_steps':
+            for step_key in sub_value.keys():
+                if step_key != 'Warmup' and step_key != 'Cooldown':
+                    print(step_key)
+    print("\n")
+    
+    #access heel_norm, midfoot_norm, forefoot_norm
+    for key in data_proc.keys():
+    exec(f'sub_{key} = data_proc["{key}"]')
+    for sub_key, sub_value in eval(f'sub_{key}').items():
+        if sub_key == 'sorted_steps':
+            for step_key in sub_value.keys():
+                if step_key != 'Warmup' and step_key != 'Cooldown':
+                    step_data = sub_value[step_key]
+                    time_points = []
+                    heel_norms = []
+                    midfoot_norms = []
+                    forefoot_norms = []
+                    for step in step_data:
+                        time_points.append(step_data[step]['time_point'])
+                        heel_norms.append(step_data[step]['Heel_norm'])
+                        midfoot_norms.append(step_data[step]['Midfoot_norm'])
+                        forefoot_norms.append(step_data[step]['Forefoot_norm'])
+                    exec(f'{key}_{step_key}_time = time_points')
+                    exec(f'{key}_{step_key}_heel = heel_norms')
+                    exec(f'{key}_{step_key}_midfoot = midfoot_norms')
+                    exec(f'{key}_{step_key}_forefoot = forefoot_norms')
+                    print(f"{key}_{step_key}_time: {eval(f'{key}_{step_key}_time')[0]}")
+                    print(f"{key}_{step_key}_heel: {eval(f'{key}_{step_key}_heel')[0]}")
+                    print(f"{key}_{step_key}_midfoot: {eval(f'{key}_{step_key}_midfoot')[0]}")
+                    print(f"{key}_{step_key}_forefoot: {eval(f'{key}_{step_key}_forefoot')[0]}")
+ 
+#extract incline and added to a dataframe 
+
+import pandas as pd
+
+# create a dataframe from the extracted_inclines dictionary
+df1 = pd.DataFrame.from_dict(extracted_inclines)
+
+# reshape the dataframe to long format
+df1 = pd.melt(df1, var_name='subject', value_name='incline_val')
+
+# print the dataframe
+df1.head()
+
+#extract speed an add all features and labels into one dataframe 
+
+# Initialize an empty list to store the step data
+step_data_list = []
+
+# create a new dictionary to store the extracted incline values
+for key in data_proc.keys():
+    exec(f'sub_{key} = data_proc["{key}"]')
+    for sub_key, sub_value in eval(f'sub_{key}').items():
+        if sub_key == 'sorted_steps':
+            for step_key in sub_value.keys():
+                if step_key != 'Warmup' and step_key != 'Cooldown':
+                    step_data = sub_value[step_key]
+                    time_points = []
+                    heel_norms = []
+                    midfoot_norms = []
+                    forefoot_norms = []
+                    for step in step_data:
+                        time_points.append(step_data[step]['time_point'])
+                        heel_norms.append(step_data[step]['Heel_norm'])
+                        midfoot_norms.append(step_data[step]['Midfoot_norm'])
+                        forefoot_norms.append(step_data[step]['Forefoot_norm'])
+                        
+                    
+                    # Extract speed from step_key by analyzing SlowX, MediumX and FastX sub-dictionaries
+                    if 'Slow' in step_key:
+                        speed = 'slow'
+                    elif 'Medium' in step_key:
+                        speed = 'medium'
+                    elif 'Fast' in step_key:
+                        speed = 'fast'
+                    else:
+                        speed = 'unknown'
+                    
+                    # Create a dictionary for this step with the extracted data
+                    step_dict = {
+                        'time': time_points,
+                        'heel': heel_norms,
+                        'midfoot': midfoot_norms,
+                        'forefoot': forefoot_norms,
+                        #'incline': incline,
+                        'speed': speed
+                    }
+                    
+                    # Append the dictionary to the step_data_list
+                    step_data_list.append(step_dict)
+
+# Create a DataFrame from the step_data_list
+df2 = pd.DataFrame(step_data_list)
+
+df2['incline_val'] = df1['incline_val']
+
+#drop NAs
+df2.dropna()
+
+#Take average of the list of list in heel_norm, midfoot_norm, forefoot_norm
+heel_avg = []
+
+for index, row in df2.iterrows():
+    heel_values = row['heel'][0][0]
+    heel_values = [float(i) for i in heel_values]
+    heel_avg.append(sum(heel_values)/len(heel_values))
+
+df2['heel_avg'] = heel_avg
+
+midfoot_avg = []
+
+for index, row in df2.iterrows():
+    midfoot_values = row['midfoot'][0][0]
+    midfoot_values = [float(i) for i in midfoot_values]
+    midfoot_avg.append(sum(midfoot_values)/len(midfoot_values))
+
+df2['midfoot_avg'] = midfoot_avg
+
+forefoot_avg = []
+
+for index, row in df2.iterrows():
+    forefoot_values = row['forefoot'][0][0]
+    forefoot_values = [float(i) for i in forefoot_values]
+    forefoot_avg.append(sum(forefoot_values)/len(forefoot_values))
+
+df2['forefoot_avg'] = forefoot_avg
+
+df2['speed']=df2['speed'].replace('slow',0).replace('medium',1).replace('fast',2)
+df2 = df2.drop(['time', 'heel', 'forefoot', 'midfoot'], axis=1)
+
+#train and evaluate RandomForestRegressor 
+
+from sklearn.multioutput import MultiOutputRegressor
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.preprocessing import StandardScaler
+
+# Split your data into training and test sets
+X = df2[['forefoot_avg', 'midfoot_avg', 'heel_avg']]
+y = df2[['incline_val', 'speed']]
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2)
+
+#standarization
+scaler = StandardScaler()
+X_train = scaler.fit_transform(X_train)
+X_test = scaler.transform(X_test)
+
+#hyperparameters
+n_estimators = 100
+max_depth = 10
+
+# Create a RandomForestRegressor object as the base estimator
+base_estimator = RandomForestRegressor(n_estimators=n_estimators, max_depth=max_depth)
+
+# Create a MultiOutputRegressor object
+multi_output_regressor = MultiOutputRegressor(base_estimator)
+
+#fit the model
+multi_output_regressor.fit(X_train, y_train)
+
+#Make predictions on the test data
+y_pred = multi_output_regressor.predict(X_test)
+
+#Evaluate the model using mean squared error
+from sklearn.metrics import mean_squared_error
+mse = mean_squared_error(y_test, y_pred)
+print("Mean squared error:", mse)
+
+#Evaluate the model using R2 score
+from sklearn.metrics import r2_score
+r2 = r2_score(y_test, y_pred)
+print("R2 score:", r2)
+
+#Plot the actual vs predicted values for incline
+import matplotlib.pyplot as plt
+plt.scatter(y_test['incline_val'], y_pred[:,0], color='blue')
+plt.xlabel("Actual incline")
+plt.ylabel("Predicted incline")
+plt.show()
+
+#Plot the actual vs predicted values for speed
+plt.scatter(y_test['speed'], y_pred[:,1], color='red')
+plt.xlabel("Actual speed")
+plt.ylabel("Predicted speed")
+plt.show()
+
+#save the model
+import pickle
+pickle.dump(multi_output_regressor, open("model.pkl", "wb"))
+
+#load the model
+loaded_model = pickle.load(open("model.pkl", "rb"))
+y_pred_loaded = loaded_model.predict(X_test)
+print("R2 score of loaded model:", r2_score(y_test, y_pred_loaded))
+
+#code for testing the model with new input
+import numpy as np
+new_input = np.array([[2.3, 3.2, 1.8]])
+new_input = scaler.transform(new_input)
+pred = loaded_model.predict(new_input)
+print("Predicted incline:", pred[0][0])
+
+# Define a mapping from the continuous predicted speed values to the categorical labels
+speed_labels = {0: "slow", 1: "medium", 2: "fast"}
+
+# Use the numpy argmax function to find the index of the maximum predicted speed value
+pred_speed_index = np.argmax(pred[:, 1])
+
+# Use the index to look up the corresponding label
+pred_speed_label = speed_labels[pred_speed_index]
+print("Predicted speed:", pred_speed_label)
+
+    
+    
