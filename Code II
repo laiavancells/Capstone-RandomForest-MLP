@@ -1,0 +1,302 @@
+import pandas as pd
+
+# Import tred02.csv and store in a dataframe
+df = pd.read_csv("tred02.csv")
+
+#Drop unnamed and empty columns for acceleration
+#df=df.drop(columns={'Unnamed: 7'})
+df = df.drop(columns=['Unnamed: 5', 'Unnamed: 6', 'Unnamed: 7', 'Unnamed: 8'])
+
+#Rename columns
+df = df.rename(columns={'PRV142-L': 'Total', 'Unnamed: 0': 'Time'})
+
+#drop first rows (strings)
+df = df.drop(index=0)
+
+#rearrange columns so every single dataset follows the same order: 'Time', 'Forefoot', 'Midfoot', 'Heel', 'Total'
+def rearrange_columns(df):
+    cols = ['Time', 'Forefoot', 'Midfoot', 'Heel', 'Total']
+    cols_present = df.columns.tolist()
+    cols_rearranged = [col for col in cols if col in cols_present] + [col for col in cols_present if col not in cols]
+    return df[cols_rearranged]
+df = rearrange_columns(df)
+
+#change datatype to float
+df['Time']=df['Time'].astype(float)
+df['Forefoot']=df['Forefoot'].astype(float)
+df['Midfoot']=df['Midfoot'].astype(float)
+df['Heel']=df['Heel'].astype(float)
+df['Total']=df['Total'].astype(float)
+
+#normalize grf by weight 
+weight = float(input("Enter weight in kg: "))
+df['Total'] = df['Total'] / weight
+df['Forefoot'] = df['Forefoot'] / weight
+df['Midfoot'] = df['Midfoot'] / weight
+df['Heel'] = df['Heel'] / weight
+
+#calculation of achilles tendon from normalize grfs
+df['Achilles'] = df['Heel'] - df['Forefoot']
+
+df.head()
+
+import numpy as np
+import matplotlib.pyplot as plt
+
+time_start=321
+time_end=325
+
+indices_fh = np.argwhere(np.diff(np.sign(df['Forefoot'] - df['Heel']))).flatten()
+
+intersection_times_fh = df.iloc[indices_fh]['Time'].values
+x_values_fh = [time for time in intersection_times_fh if df.loc[df['Time'] == time]['Forefoot'].iloc[0] == 0]
+
+indices_fm = np.argwhere(np.diff(np.sign(df['Forefoot'] - df['Midfoot']))).flatten()
+intersection_times_fm = df.iloc[indices_fm]['Time'].values
+x_values_fm = [time for time in intersection_times_fm if df.loc[df['Time'] == time]['Forefoot'].iloc[0] == 0]
+
+indices_ft = np.argwhere(np.diff(np.sign(df['Forefoot'] - df['Total']))).flatten()
+intersection_times_ft = df.iloc[indices_ft]['Time'].values
+x_values_ft = [time for time in intersection_times_ft if df.loc[df['Time'] == time]['Forefoot'].iloc[0] == 0]
+
+indices_hm = np.argwhere(np.diff(np.sign(df['Heel'] - df['Midfoot']))).flatten()
+intersection_times_hm = df.iloc[indices_hm]['Time'].values
+x_values_hm = [time for time in intersection_times_hm if df.loc[df['Time'] == time]['Heel'].iloc[0] == 0]
+
+indices_ht = np.argwhere(np.diff(np.sign(df['Heel'] - df['Total']))).flatten()
+intersection_times_ht = df.iloc[indices_ht]['Time'].values
+x_values_ht = [time for time in intersection_times_ht if df.loc[df['Time'] == time]['Heel'].iloc[0] == 0]
+
+indices_mt = np.argwhere(np.diff(np.sign(df['Midfoot'] - df['Total']))).flatten()
+intersection_times_mt = df.iloc[indices_mt]['Time'].values
+x_values_mt = [time for time in intersection_times_mt if df.loc[df['Time'] == time]['Midfoot'].iloc[0] == 0]
+
+# Plot time against all four normalized columns
+plt.plot(df['Time'], df['Total'], label='Total', color='red')
+plt.plot(df['Time'], df['Forefoot'], label='Forefoot', color='blue')
+plt.plot(df['Time'], df['Midfoot'], label='Midfoot', color='green')
+plt.plot(df['Time'], df['Heel'], label='Heel', color='purple')
+
+plt.scatter(df.iloc[indices_fh]['Time'].values, df.iloc[indices_fh]['Forefoot'].values, label='Intersection FH', color='pink', marker='x')
+plt.scatter(df.iloc[indices_fm]['Time'].values, df.iloc[indices_fm]['Forefoot'].values, label='Intersection FM', color='blue', marker='x')
+plt.scatter(df.iloc[indices_ft]['Time'].values, df.iloc[indices_ft]['Forefoot'].values, label='Intersection FT', color='red', marker='x')
+plt.scatter(df.iloc[indices_hm]['Time'].values, df.iloc[indices_hm]['Heel'].values, label='Intersection HM', color='orange', marker='x')
+plt.scatter(df.iloc[indices_ht]['Time'].values, df.iloc[indices_ht]['Heel'].values, label='Intersection HT', color='green', marker='x')
+plt.scatter(df.iloc[indices_mt]['Time'].values, df.iloc[indices_mt]['Midfoot'].values, label='Intersection MT', color='black', marker='x')
+
+# Plot the intersection points as markers on the graph
+plt.scatter(intersection_times_fh, df.iloc[indices_fh]['Forefoot'].values, label='Intersection', color='black', marker='x')
+
+# Display the x coordinate of the intersections that have y>2
+for i in range(len(intersection_times_fh)):
+    if df.iloc[indices_fh[i]]['Forefoot'] >= 2:
+        plt.axvline(x=intersection_times_fh[i], color='black', linestyle='--')
+       # print(f"x coordinate of intersection with y>2: {intersection_times[i]}")
+        
+# Add vertical lines for intersection HT between y=0.5 and y=1.5 and intersection FT between y=0.5 and y=1.5
+for i in indices_ht:
+    if df.iloc[i]['Heel'] >= 0.3 and df.iloc[i]['Heel'] <= 3:
+        plt.axvline(df.iloc[i]['Time'], color='green', alpha=0.5)
+        
+        
+for i in indices_ft:
+    if df.iloc[i]['Forefoot'] >= 0.3 and df.iloc[i]['Forefoot'] <= 3:
+        plt.axvline(df.iloc[i]['Time'], color='red', alpha=0.5)
+        
+plt.xlabel('Time (s)')
+plt.ylabel('Normalized Force (N/kg)')
+plt.title('Time vs Normalized Force')
+
+plt.xlim(time_start, time_end)
+
+plt.legend()
+plt.show()
+
+used_times = []
+result=[]
+for i in range(len(intersection_times_fh)):
+    if df.iloc[indices_fh[i]]['Forefoot'] >= 2:
+        x_coordinate = intersection_times_fh[i]
+        if x_coordinate not in used_times:
+            ht_times = [df.iloc[i]['Time'] for i in indices_ht if df.iloc[i]['Heel'] >= 0.3 and df.iloc[i]['Heel'] <= 3 and df.iloc[i]['Time'] < x_coordinate and df.iloc[i]['Time'] not in used_times]
+            ft_times = [df.iloc[i]['Time'] for i in indices_ft if df.iloc[i]['Forefoot'] >= 0.3 and df.iloc[i]['Forefoot'] <= 3 and df.iloc[i]['Time'] > x_coordinate and df.iloc[i]['Time'] not in used_times]
+            if ht_times and ft_times:
+                ht_time = max(ht_times)
+                ft_time = min(ft_times)
+                if ht_time < x_coordinate < ft_time and ft_time-ht_time<=1.5:
+                    if i > 0 and ft_times[-1] <= ht_times[0]:
+                        continue
+                    
+                    # Find the max peak for forefoot, midfoot, and heel
+                    start_time = ht_time
+                    end_time = ft_time
+                    forefoot_peak = df[(df['Time'] >= start_time) & (df['Time'] <= end_time)]['Forefoot'].max()
+                    midfoot_peak = df[(df['Time'] >= start_time) & (df['Time'] <= end_time)]['Midfoot'].max()
+                    heel_peak = df[(df['Time'] >= start_time) & (df['Time'] <= end_time)]['Heel'].max()
+                    
+                    # Calculate the max peak of the heel and the tangent line
+                    heel_peak_time = df[df['Heel'] == heel_peak]['Time'].values[0]
+                    m = (forefoot_peak - heel_peak) / (ft_time - heel_peak_time)
+                    b = heel_peak - m * heel_peak_time
+                    tangent_peak = m * x_coordinate + b
+                    distance_tangent = heel_peak - tangent_peak
+                    distance_forefoot = heel_peak - forefoot_peak
+                    distance_midfoot = heel_peak - midfoot_peak
+                    ratio_forefoot = forefoot_peak / heel_peak
+                    ratio_midfoot = midfoot_peak / heel_peak
+                    
+                    # Stride length calculation
+                    stride_length = ft_time - ht_time
+                    
+                    # Stride velocity calculation
+                    stride_velocity = stride_length / (ft_time - ht_time)
+                    
+                    # Calculate stance time
+                    stance_time = ft_time - ht_time
+                    
+                    # Add calculation for gait symmetry
+                    stride_length = (forefoot_peak + heel_peak) / 2
+                    gait_symmetry = (forefoot_peak - heel_peak) / stride_length
+                    
+                    used_times.extend([ht_time, x_coordinate, ft_time])
+                    result.append([x_coordinate, forefoot_peak, midfoot_peak, heel_peak, distance_tangent, distance_forefoot, distance_midfoot, ratio_forefoot, ratio_midfoot, stride_length, gait_symmetry])
+                    
+df_gait = pd.DataFrame(result, columns=['Time', 'Forefoot_Peaks', 'Midfoot_Peaks', 'Heel_Peaks', 'Distance_Tangent', 'Distance_Forefoot', 'Distance_Midfoot', 'Ratio_Forefoot', 'Ratio_Midfoot', 'Stride_Length', 'Gait_Symmetry'])
+df_gait.head()
+
+labels = ['warm_up', 'Slow1', 'Slow1', 'Medium1', 'Medium1', 'Fast1', 'Fast1', 'Slow2', 'Slow2', 'Medium2', 'Medium2', 'Fast2', 'Fast2', 'Slow3', 'Slow3', 'Medium3', 'Medium3', 'Fast3', 'Fast3', 'Slow4', 'Slow4', 'Medium4', 'Medium4', 'Fast4', 'Fast4', 'Slow5', 'Slow5', 'Medium5', 'Medium5', 'Fast5', 'Fast5', 'Slow6', 'Slow6', 'Medium6', 'Medium6', 'Fast6', 'Fast6', 'cool_down', 'cool_down']
+values = [30, 175, 176, 215, 225, 250, 251, 277, 280, 340, 350, 375, 380, 392, 400, 457, 461, 494, 497, 523, 528, 582, 585, 620, 621, 654, 655, 722, 727, 754, 757, 777, 786, 842, 845, 883, 885, 910, 914, 1098]
+
+new_labels = ['0', '10', '10', '10', '10', '10', '10','0', '0', '0','0', '0', '0', '20', '20', '20', '20', '20', '20', '5', '5', '5','5', '5', '5', '25', '25', '25', '25', '25', '25', '15', '15', '15','15', '15', '15']
+
+label_merged = []
+for label, new_label in zip(labels, new_labels):
+    label_merged.append(f'{label}_{new_label}')
+
+label_values = {}
+for i, label in enumerate(label_merged):
+    if i % 2 == 0:
+        start = values[i]
+        end = values[i + 1]
+        label_values[label] = (start, end)
+
+print(label_values)
+
+df['Label'] = ''
+for i, time in enumerate(df['Time']):
+    for label, values in label_values.items():
+        if time >= values[0] and time <= values[1]:
+            df.at[i, 'Label'] = label
+            
+df[(df['Time'] >= 174) & (df['Time'] <= 180)]
+
+df = df.merge(df_gait, on='Time')
+
+import pandas as pd
+from sklearn.preprocessing import StandardScaler
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+from sklearn.model_selection import train_test_split
+
+#Split into features and labels
+
+X = df.drop(["Label", "Time"], axis=1)
+y = df["Label"]
+
+#Scale the features
+
+scaler = StandardScaler()
+X = scaler.fit_transform(X)
+
+#Split the data into train and test sets
+
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.5, random_state=42)
+
+from sklearn.preprocessing import LabelEncoder
+
+le = LabelEncoder()
+y_train = le.fit_transform(y_train)
+y_test = le.transform(y_test)
+
+# Convert the numpy arrays into PyTorch tensors
+X_train = torch.tensor(X_train, dtype=torch.float32)
+X_test = torch.tensor(X_test, dtype=torch.float32)
+y_train = torch.tensor(y_train, dtype=torch.long)
+y_test = torch.tensor(y_test, dtype=torch.long)
+
+# Define your MLP model as before
+class MLP(nn.Module):
+    def __init__(self, input_size, hidden_size, num_classes):
+        super(MLP, self).__init__()
+        self.fc1 = nn.Linear(input_size, hidden_size)
+        self.fc2 = nn.Linear(hidden_size, num_classes)
+        
+    def forward(self, x):
+        x = F.relu(self.fc1(x))
+        x = self.fc2(x)
+        return x
+    
+input_size = X_train.shape[1]
+#input_size = 10 # change this based on the input feature size
+hidden_size = 2048 # change this based on the desired hidden size
+#num_classes = 4 #
+num_classes = len(y.unique())
+
+model = MLP(input_size, hidden_size, num_classes)
+
+import torch.nn as nn
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+
+#Define the loss function and the optimizer
+
+criterion = nn.CrossEntropyLoss()
+optimizer = torch.optim.RMSprop(model.parameters(), lr=0.0001)
+
+training_acc = []
+#Train the model
+
+num_epochs = 10000
+for epoch in range(num_epochs):
+    outputs = model(X_train)
+    loss = criterion(outputs, y_train)
+    
+# Backward pass and optimization
+optimizer.zero_grad()
+loss.backward()
+optimizer.step()
+
+##
+for epoch in range(num_epochs):
+    optimizer.zero_grad()
+    outputs = model(X_train)
+    loss = criterion(outputs, y_train)
+    loss.backward()
+    optimizer.step()
+    
+#Compute the accuracy of the model after each epoch
+_, predictions = torch.max(outputs, dim=1)
+accuracy = torch.sum(predictions == y_train).item() / y_train.shape[0]
+training_acc.append(accuracy)
+
+if epoch % 1000 == 0:
+    print(f"Epoch {epoch}, Loss: {loss.item()}, Accuracy: {accuracy}")
+##
+
+# Print the progress
+if (epoch+1) % 10 == 0:
+    print(f'Epoch [{epoch+1}/{num_epochs}], Loss: {loss.item()}')
+    
+#Evaluate the model on the test data
+
+with torch.no_grad():
+    correct = 0
+    total = 0
+    outputs = model(X_test)
+    _, predicted = torch.max(outputs.data, 1)
+    total += y_test.size(0)
+    correct += (predicted == y_test).sum().item()
+
+print(f'Accuracy of the model on the test data: {100 * correct / total}%')
