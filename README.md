@@ -1,4 +1,4 @@
-# Capstone-RandomForest-MLP
+# Capstone-RandomForest
 
 This study aims to assess the accuracy and practicality of incorporating machine learning algorithms with instrumented insoles for studying Achilles tendon loading outside laboratory environments by developing an 18 class Random Forest classifier that predicts treadmill incline and walking speed as a function of ground reaction forces (GRFs) data. 
 
@@ -85,10 +85,6 @@ If you encounter any issues while using this project, try the following:
 
 ## Authors
 
-Danushka Bandara
-
-dbandara@fairfield.edu
-
 Laia Vancells Lopez 
 
 laia.vancellslopez@student.fairfield.edu
@@ -103,7 +99,7 @@ This project is licensed under the laiavancells License - see the LICENSE.md fil
 
 ## Acknowledgments
 
-I would like to thank Dr. Drazan for their valuable feedback and contributions to this project. His insights and expertise were instrumental in improving the quality of our work.
+I would like to thank Dr. Drazan and Dr. Bandara for their valuable feedback and contributions to this project. Their insights and expertise were instrumental in improving the quality of our work.
 
 Note
 This code has been written with a specific data file in mind (data_for_Brigid_7_6_2022.mat), and may not work with other data files without modification.
