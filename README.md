@@ -1,14 +1,14 @@
 # Capstone-RandomForest-MLP
 
-This study aims to assess the accuracy and practicality of incorporating machine learning algorithms with instrumented insoles for studying Achilles tendon loading outside laboratory environments by developing three LSTMs that predict treadmill incline and walking speed using ground reaction forces (GRFs) data. 
+This study aims to assess the accuracy and practicality of incorporating machine learning algorithms with instrumented insoles for studying Achilles tendon loading outside laboratory environments by developing an 18 class Random Forest classifier that predicts treadmill incline and walking speed as a function of ground reaction forces (GRFs) data. 
 
 
 ## Description
 
-Instrumented insoles with 3 force sensors were used to collected data from fifteen participants that were asked to perform treadmill exercises at varying treadmill incline (0-25%) and walking speed (0.8-1.6 m/s) conditions, with 5% and 0.4 m/s increment, respectively. The ground reaction forces (GRFs) were recorded at the forefoot, midfoot, and heel positions during 30-second walking exercise phases. In order to ensure consistency across participants, each subject performed the same set of conditions. GRFs were normalized by bodyweight (kg) to standardize the data and ensure accurate comparison between participants. A pre-existing algorithm was used to calculate the loading on the Achilles tendon for each subject.The individual steps were extracted from the time series sequences using a peak detection algorithm. The extracted time series sequences for the steps were then fed into a 3, 6, 18 class Long Short Term Memory Network (LSTM). The accuracy of the developed models was evaluated based on their speed and incline prediction performance (80-20 train validation split). This code intends to display the potential of using machine learning and instrumented insoles for predicting Achilles tendon loading during exercise.
+Instrumented insoles with 3 force sensors were used to collected data from fifteen participants that were asked to perform treadmill exercises at varying treadmill incline (0-25%) and walking speed (0.8-1.6 m/s) conditions, with 5% and 0.4 m/s increment, respectively. The ground reaction forces (GRFs) were recorded at the forefoot, midfoot, and heel positions during 30-second walking exercise phases. In order to ensure consistency across participants, each subject performed the same set of conditions. GRFs were normalized by bodyweight (kg) to standardize the data and ensure accurate comparison between participants. The individual steps were extracted from the time series sequences using a peak detection algorithm. The extracted time series sequences for the steps were then fed into a 18 class Random Forest Classifier. The accuracy of the developed models was evaluated based on their speed and incline prediction performance (80-20 train validation split). This code intends to display the potential of using machine learning and instrumented insoles for predicting Achilles tendon loading during exercise.
  
 
-## Getting Started
+## Deployment
 
 ### Dependencies
 
@@ -16,16 +16,30 @@ Python 3
 
 Pandas
 
+Numpy 
+
 Mat4py
+
+Pickle
+
+Matplotlib.pyplot
+
+Sklearn.multioutput: MultiOutputRegressor
+
+Sklearn.ensemble: RandomForestRegressor
+
+Sklearn.preprocessing: StandardScaler
+
+Sklearn.metrics: mean_squared_error
 
 ### Installing
 
-To run this code, you must have Python installed. You can install Pandas and Mat4py using pip:
+To run this code, you must have Python installed. You can install  the libraries using pip:
 -	Pip install pandas
 -	Pip install mat4py
-
-Note
-This code has been written with a specific data file in mind (data_for_Brigid_7_6_2022.mat), and may not work with other data files without modification.
+- pip install numpy 
+- pip install pickle 
+- pip install matplotlib
 
 ### Executing program
 The code can be broken down into the following steps:
@@ -68,7 +82,6 @@ If you encounter any issues while using this project, try the following:
 
 - Check that all dependencies are installed correctly
 - Make sure that you are using the correct command to run the project
-- Consult the project's documentation or the developer community for help
 
 ## Authors
 
@@ -91,3 +104,6 @@ This project is licensed under the laiavancells License - see the LICENSE.md fil
 ## Acknowledgments
 
 I would like to thank Dr. Drazan for their valuable feedback and contributions to this project. His insights and expertise were instrumental in improving the quality of our work.
+
+Note
+This code has been written with a specific data file in mind (data_for_Brigid_7_6_2022.mat), and may not work with other data files without modification.
