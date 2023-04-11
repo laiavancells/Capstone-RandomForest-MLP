@@ -101,5 +101,5 @@ This project is licensed under the laiavancells License - see the LICENSE.md fil
 
 I would like to thank Dr. Drazan and Dr. Bandara for their valuable feedback and contributions to this project. Their insights and expertise were instrumental in improving the quality of our work.
 
-Note
+Note:
 This code has been written with a specific data file in mind (data_for_Brigid_7_6_2022.mat), and may not work with other data files without modification.
